@@ -11,7 +11,7 @@ function ShiftSimulationOld(N, x, y)
         tmpVec .= x .+ RandVec[i]
         tmpVec[findall(tmpVec .> MaxX)] .-= MaxX
         for j in y
-            SimCountOut[i] += count((tmpVec .> j) .& (tmpVec .< j+0.5))
+            SimCountOut[i] += count((tmpVec .>= j) .& (tmpVec .<= j+0.5))
         end
     end
     return SimCountOut/YLength  
