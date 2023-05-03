@@ -24,14 +24,28 @@ function ShiftSimulation(N, x, y)
     YLength = length(y) 
     RandVec = rand(N) .* MaxX
     for i=1:N
-        tmpVec .= x .+ RandVec[i]
-        tmpVec[findall(tmpVec .> MaxX)] .-= MaxX
-        sort!(tmpVec)
-        SimCountOut[i] += DetectCount(tmpVec,y)
+        @inbounds tmpVec .= x .+ RandVec[i]
+        OverMax!(tmpVec, MaxX)
+        @inbounds SimCountOut[i] += DetectCount(tmpVec,y)
     end
     return SimCountOut/YLength  
 end
 
+# reduce subtract values over maximum from vector
+function OverMax!(x, cutoff)
+    sort!(x)
+    i=1
+    N=length(x)
+    while (i < N+1) && (x[i] <= cutoff) 
+        i += 1    
+    end
+    if(i<=N)
+        tmpX = @view x[i:N]
+        tmpX .-= cutoff
+        sort!(x)
+    end
+    return nothing
+end
 
 # this function has the problem to count values twice if overlap of windows exists
 function DetectCountOld(x, window)
@@ -41,7 +55,6 @@ function DetectCountOld(x, window)
     end
     return CountOut
 end
-
 
 # fast minimalistic function to count occurence in window
 function DetectCount(x, window)
