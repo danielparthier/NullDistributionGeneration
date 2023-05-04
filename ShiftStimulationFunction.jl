@@ -1,6 +1,19 @@
-using Random, Test
-using Distributions
+using Random, Test, Distributions
 
+"""
+    ShiftSimulationOld(N, x, y)
+
+"Old" function for estimating the Null-distribution of events happening in a given time window (start to start+0.5s).
+(Not recommended - use `ShiftSimulation`)
+
+# Arguments
+- `N::Int`: The number of simulations to run.
+- `x::Vector{Float32}`: A vector of a timeseries.
+- `y::Vector{Float32}`: A vector of starting times for the event window.
+
+# Returns
+- `SimCountOut::Vector{Float32}`: A vector of counts for each range in `y`, normalized by the length of `y`.
+"""
 function ShiftSimulationOld(N, x, y)
     SimCountOut = zeros(Float32, N)
     tmpVec = similar(x)
@@ -17,6 +30,19 @@ function ShiftSimulationOld(N, x, y)
     return SimCountOut/YLength  
 end
 
+"""
+    ShiftSimulation(N, x, y)
+
+Function for estimating the Null-distribution of events happening in a given time window (start to start+0.5s).
+
+# Arguments
+- `N::Int`: The number of simulations to run.
+- `x::Vector{Float32}`: A vector of a timeseries.
+- `y::Vector{Float32}`: A vector of starting times for the event window.
+
+# Returns
+- `SimCountOut::Vector{Float32}`: A vector of counts for each range in `y`, normalized by the length of `y`.
+"""
 function ShiftSimulation(N, x, y)
     SimCountOut = zeros(Float32, N)
     tmpVec = similar(x)
@@ -31,7 +57,11 @@ function ShiftSimulation(N, x, y)
     return SimCountOut/YLength  
 end
 
-# reduce subtract values over maximum from vector
+"""
+    OverMax!(x, cutoff)
+
+Helper function to subtract cutoff value by reference from x when x is larger the the cutoff.
+"""
 function OverMax!(x, cutoff)
     sort!(x)
     i=1
@@ -47,7 +77,11 @@ function OverMax!(x, cutoff)
     return nothing
 end
 
-# this function has the problem to count values twice if overlap of windows exists
+"""
+    DetectCountOld(x, window)
+
+Helper function to count events in a given window (start to start+0.5s). This function might count event twice if window overlaps.
+"""
 function DetectCountOld(x, window)
     CountOut = 0
     for j in window
@@ -56,7 +90,11 @@ function DetectCountOld(x, window)
     return CountOut
 end
 
-# fast minimalistic function to count occurence in window
+"""
+    DetectCount(x, window)
+
+Helper function to count events in a given window (start to start+0.5s).
+"""
 function DetectCount(x, window)
     Nx = length(x)
     Nwindow = length(window)
