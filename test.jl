@@ -1,5 +1,5 @@
 using Distributions, Plots, Random, Statistics
-using BenchmarkTools
+using BenchmarkTools, Test
 function CreateLicks()
     cumsum(shuffle([rand(Gamma(280, 1/20), 40); rand(Gamma(2, 1/7), 120)]))
 end
@@ -38,28 +38,63 @@ Random.seed!(1)
 OutOld = ShiftSimulationOld(Simulations, TestX, TestY)
 Test.@test mean(Out) == mean(OutOld)
 
-
-# Compare output of the two functions
-function testRuns(Licks, PictureSlot)
-    test1 = zeros(Float32, 1000)
-    test2 = zeros(Float32, 1000)
-    for i in 1:1000
-        Random.seed!(i)
-        test1[i] = mean(ShiftSimulation(1000, Licks, PictureSlot))
-        Random.seed!(i)
-        test2[i] = mean(ShiftSimulationOld(1000, Licks, PictureSlot))
-    end
-    return test1, test2
+# Structure for test output
+mutable struct TestOutput{Float64}
+    Output1::Array{Float64}
+    Output2::Array{Float64}
+    Timing1::Array{Float64}
+    Timing2::Array{Float64}
+    Simulations::Int64
 end
 
-testThat = testRuns(Licks, PictureSlot)
+# Compare output of the two functions
+function testRuns(Licks, PictureSlot, N::Int64)
+    test1 = zeros(Float32, N)
+    test2 = zeros(Float32, N)
+    time1 = zeros(Float32, N)
+    time2 = zeros(Float32, N)
+    for i in 1:N
+        Random.seed!(i)
+        tmp = @timed mean(ShiftSimulation(10000, Licks, PictureSlot))
+        test1[i] += tmp[1]
+        time1[i] += tmp[2]
+        Random.seed!(i)
+        tmp = @timed mean(ShiftSimulationOld(10000, Licks, PictureSlot))
+        test2[i] += tmp[1]
+        time2[i] += tmp[2]
+    end
+    return TestOutput(test1, test2, time1*1000, time2*1000, N)
+end
 
-println("Test1 - median: ", median(testThat[1]), " ⨦ ", median(abs.(testThat[1] .- median(testThat[1]))))
-println("Test2 - median: ", median(testThat[2]), " ⨦ ", median(abs.(testThat[2] .- median(testThat[2]))))
-println("Test1 - mean: ", mean(testThat[1]), " ⨦ ",std(testThat[1]))
-println("Test2 - mean: ", mean(testThat[2]), " ⨦ ", std(testThat[2]))
-histogram(testThat[1], bins=range(0.1,0.2,100))
-histogram(testThat[2], bins=range(0.1,0.2,100))
+testThat = testRuns(Licks, PictureSlot, 1000);
 
-length(unique(testThat[1]))
-length(unique(testThat[2]))
+begin
+    println("Values")
+    println("New - median: ", median(testThat.Output1), " ⨦ ", median(abs.(testThat.Output1 .- median(testThat.Output1))))
+    println("Old - median: ", median(testThat.Output2), " ⨦ ", median(abs.(testThat.Output2 .- median(testThat.Output2))))
+    println("New - mean: ", mean(testThat.Output1), " ⨦ ",std(testThat.Output1))
+    println("Old - mean: ", mean(testThat.Output2), " ⨦ ", std(testThat.Output2))
+end
+
+begin
+    println("Time (ms)")
+    println("New - median: ", median(testThat.Timing1), " ⨦ ", median(abs.(testThat.Timing1 .- median(testThat.Timing1))))
+    println("Old - median: ", median(testThat.Timing2), " ⨦ ", median(abs.(testThat.Timing2 .- median(testThat.Timing2))))
+    println("New - mean: ", mean(testThat.Timing1), " ⨦ ",std(testThat.Timing1))
+    println("Old - mean: ", mean(testThat.Timing2), " ⨦ ", std(testThat.Timing2))
+end
+
+# plot values and time of function
+plot(histogram(testThat.Output1, bins=range(0.1,0.15,100)), histogram(testThat.Output2, bins=range(0.1,0.15,100)))
+begin
+    histogram(testThat.Timing1, bins=range(0,100,100),label="ShiftStimulation", lw=0.1)
+    histogram!(testThat.Timing2, bins=range(0,500,100), label="ShiftStimulationOld",lw=0.1)
+    xlabel!("Time (ms)")
+    title!("Benchmark Timings")
+end
+
+# Output is identical
+Test.@test testThat.Output1 == testThat.Output2
+
+length(unique(testThat.Output1))
+length(unique(testThat.Output2))
