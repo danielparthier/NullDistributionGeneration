@@ -114,10 +114,16 @@ function DetectCount(x, window)
     return CountOut
 end
 
-
-# test fast function
-xtest = [0,0.1,0.11,0.12,0.4,0.41,0.42,0.7,0.71,0.72, 1.1, 1.2]
-ytest = [0.1,0.6, 1.1]
-
-Test.@test DetectCount(xtest, ytest) == 11
-Test.@test DetectCount(0, 0) == 1
+@testset "Test functions" begin
+    xtest = [0,0.1,0.11,0.12,0.4,0.41,0.42,0.7,0.71,0.72, 1.1, 1.2]
+    ytest = [0.1,0.6, 1.1]
+    Test.@test DetectCount(xtest, ytest) == 11
+    Test.@test DetectCount(0, 0) == 1
+    Test.@test unique(ShiftSimulation(100, [0], [0])) == convert(Array{Float32}, [1.0])
+    Test.@test unique(ShiftSimulationOld(100, [0], [0])) == convert(Array{Float32}, [1.0])
+    Random.seed!(1)
+    TestSet = ShiftSimulation(100, xtest, ytest);
+    Random.seed!(1)
+    TestSetOld = ShiftSimulationOld(100, xtest, ytest);
+    Test.@test TestSet == TestSetOld
+end
